@@ -1,67 +1,4 @@
-name: 打包 EXE+APK 并发布 Release
-
-on:
-  push:
-    tags:
-      - 'v*'
-  workflow_dispatch:
-
-permissions:
-  contents: write
-
-jobs:
-  # ========== Windows EXE ==========
-  build-windows:
-    runs-on: windows-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: 设置 Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.10'
-
-      - name: 安装依赖
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r windows/requirements.txt
-        working-directory: ${{ github.workspace }}
-
-      - name: 验证文件结构
-        run: |
-          echo "=== windows 文件夹内容 ==="
-          dir windows
-          echo "=== 检查 main.py 存在 ==="
-          if exist windows\main.py (echo OK) else (echo MISSING & exit 1)
-          echo "=== 检查 _config_default.json 存在 ==="
-          if exist windows\_config_default.json (echo OK) else (echo MISSING & exit 1)
-        shell: cmd
-
-      - name: 打包 EXE
-        run: |
-          set PYTHONUTF8=1
-          pyinstaller -F -w ^
-            --uac-admin ^
-            --name "喵提醒中转" ^
-            --add-data "_config_default.json;." ^
-            --clean ^
-            main.py
-        working-directory: windows
-        shell: cmd
-
-      - name: 验证 EXE 产物
-        run: |
-          echo "=== dist 文件夹内容 ==="
-          dir windows\dist
-        shell: cmd
-
-      - name: 上传 EXE
-        uses: actions/upload-artifact@v4
-        with:
-          name: windows-exe
-          path: windows/dist/喵提醒中转.exe
-
-  # ========== Android APK ==========
+# ========== Android APK ==========
   build-apk:
     runs-on: ubuntu-latest
     steps:
@@ -73,90 +10,46 @@ jobs:
           path: |
             ~/.buildozer
           key: ${{ runner.os }}-buildozer-${{ hashFiles('apk/buildozer.spec') }}
-          restore-keys: |
-            ${{ runner.os }}-buildozer-
 
-      - name: 安装系统依赖
+      - name: 安装系统依赖（Buildozer 必备）
         run: |
           sudo apt update
-          sudo apt install -y openjdk-17-jdk autoconf automake libtool pkg-config \
-            zlib1g-dev libncurses5-dev libffi-dev libssl-dev \
-            python3-pip python3-setuptools git
-          pip3 install --upgrade cython==0.29.36 buildozer
+          sudo apt install -y \
+            openjdk-17-jdk \
+            autoconf automake libtool pkg-config \
+            zlib1g-dev libncurses5-dev libncursesw5-dev \
+            libffi-dev libssl-dev \
+            python3 python3-pip python3-venv \
+            git unzip zip curl ccache \
+            gradle
+
+      - name: 安装 Python 工具链
+        run: |
+          python3 -m pip install --upgrade pip
+          pip3 install --upgrade pipx
+          pipx ensurepath
+          pipx install --force cython==0.29.36 buildozer
 
       - name: 验证文件结构
         run: |
-          echo "=== apk 文件夹内容 ==="
+          echo "=== apk ==="
           ls -la apk/
-          echo "=== 检查 main.py 存在 ==="
-          test -f apk/main.py && echo "OK" || (echo "MISSING" && exit 1)
-          echo "=== 检查 buildozer.spec 存在 ==="
-          test -f apk/buildozer.spec && echo "OK" || (echo "MISSING" && exit 1)
+          test -f apk/main.py && echo "main.py OK"
+          test -f apk/buildozer.spec && echo "spec OK"
 
-      - name: 编译 APK
+      - name: 编译 APK（显式路径）
         run: |
+          export PATH=$PATH:$HOME/.local/bin
           cd apk
-          buildozer android debug
+          buildozer -v android debug
 
       - name: 验证 APK 产物
         run: |
-          echo "=== bin 文件夹内容 ==="
-          ls -la apk/bin/
+          echo "=== APK bin ==="
+          ls -lh apk/bin/ || echo "bin missing"
 
       - name: 上传 APK
         uses: actions/upload-artifact@v4
         with:
           name: android-apk
           path: apk/bin/*.apk
-
-  # ========== 发布 Release ==========
-  release:
-    needs: [build-windows, build-apk]
-    runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/')
-    steps:
-      - uses: actions/download-artifact@v4
-        with:
-          name: windows-exe
-          path: ./dist-exe
-
-      - uses: actions/download-artifact@v4
-        with:
-          name: android-apk
-          path: ./dist-apk
-
-      - name: 列出所有产物
-        run: |
-          echo "=== EXE ==="
-          ls -la ./dist-exe/
-          echo "=== APK ==="
-          ls -la ./dist-apk/
-
-      - name: 发布 Release
-        uses: softprops/action-gh-release@v2
-        with:
-          files: |
-            ./dist-exe/喵提醒中转.exe
-            ./dist-apk/*.apk
-          generate_release_notes: true
-          name: 喵提醒中转 ${{ github.ref_name }}
-          body: |
-            ## 🐱 喵提醒中转 ${{ github.ref_name }}
-
-            ### 📦 下载
-            - **Windows**: `喵提醒中转.exe` — 双击运行，自动注册系统托盘
-            - **Android**: `miaoremind-debug.apk` — 安装后后台监听
-
-            ### ✨ 功能
-            - ✅ 拦截 miaotixing.com → 本地中转
-            - ✅ 6 大推送渠道（PushPlus / Server酱 / Bark / Telegram / 钉钉）
-            - ✅ 系统托盘 + 配置弹窗（Windows）
-            - ✅ 开机自启 + 前台服务（Android）
-
-            ### 🚀 使用
-            1. 下载对应平台文件
-            2. 首次运行会自动写入 hosts 劫持规则
-            3. 配置推送 Token（编辑同目录 _config.json）
-            4. 享受无广告的喵提醒 🎉
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
