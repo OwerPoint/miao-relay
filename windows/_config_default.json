@@ -1,0 +1,10 @@
+{
+    "pushplus_token": "",
+    "serverchan_key": "",
+    "bark_url": "",
+    "telegram_bot_token": "",
+    "telegram_chat_id": "",
+    "dingtalk_webhook": "",
+    "listen_port": 8080,
+    "forward_target": "https://miaotixing.com"
+}

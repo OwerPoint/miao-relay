@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>🐱 喵提醒中转 - GitHub 网页上传指南</title>
+<style>
+body { font-family: 'Microsoft YaHei', sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; background: #1a1a2e; color: #eee; }
+h1 { color: #ffa500; text-align: center; }
+h2 { color: #00d4aa; border-bottom: 2px solid #333; padding-bottom: 8px; }
+.step { background: #16213e; padding: 15px 20px; margin: 15px 0; border-radius: 10px; border-left: 4px solid #ffa500; }
+code { background: #0f3460; padding: 2px 8px; border-radius: 4px; color: #ffd700; }
+.file-list { background: #0f3460; padding: 15px; border-radius: 8px; font-family: monospace; }
+.highlight { color: #ff6b6b; font-weight: bold; }
+.tip { background: #1a472a; padding: 10px 15px; border-radius: 8px; margin: 10px 0; }
+</style>
+</head>
+<body>
+<h1>🐱 喵提醒中转</h1>
+<h2>GitHub 网页版上传指南（不用装 Git！）</h2>
+
+<div class="step">
+<strong>第 1 步：创建仓库</strong>
+<ol>
+<li>打开 github.com → 登录</li>
+<li>点右上角 ➕ → <code>New repository</code></li>
+<li>仓库名：<code>miao-relay</code></li>
+<li>选 <span class="highlight">Public</span></li>
+<li>✅ 勾选 <code>Add a README file</code></li>
+<li>点 <code>Create repository</code></li>
+</ol>
+</div>
+
+<div class="step">
+<strong>第 2 步：开启 Actions 权限</strong>
+<ol>
+<li>进仓库 → <code>Settings</code> → <code>Actions</code> → <code>General</code></li>
+<li>找到 <code>Workflow permissions</code></li>
+<li>选 <span class="highlight">Read and write permissions</span></li>
+<li>点 <code>Save</code></li>
+</ol>
+</div>
+
+<div class="step">
+<strong>第 3 步：上传文件（按下面列表逐个建）</strong>
+<p>点 <code>Add file</code> → <code>Create new file</code> → 文件名写完整路径 → 粘贴内容 → Commit</p>
+
+<div class="file-list">
+📁 .github/workflows/build_all.yml<br>
+📁 windows/main.py<br>
+📁 windows/_config_default.json<br>
+📁 windows/requirements.txt<br>
+📁 apk/main.py<br>
+📁 apk/buildozer.spec<br>
+📁 apk/requirements.txt<br>
+📁 .gitignore<br>
+📁 README.md<br>
+📁 LICENSE<br>
+📁 QUICKSTART.md
+</div>
+</div>
+
+<div class="tip">
+💡 <strong>懒人技巧</strong>：去 <a href="https://github.com/OverPoint/miao-relay" style="color:#ffa500;">模板仓库</a> 点 <code>Use this template</code> → 填名字 → Create → 自动拥有所有文件！
+</div>
+
+<div class="step">
+<strong>第 4 步：触发打包</strong>
+<ol>
+<li>点顶部 <code>Actions</code></li>
+<li>左边选 <code>打包 EXE+APK 并发布 Release</code></li>
+<li>右边点 <code>Run workflow</code> → 选 <code>main</code> → 点 <code>Run workflow</code></li>
+</ol>
+</div>
+
+<div class="step">
+<strong>第 5 步：等 20 分钟 → 下载成品</strong>
+<ul>
+<li>✅ Actions 变绿 = 成功</li>
+<li>点 <code>Releases</code> → 下载 <code>喵提醒中转.exe</code> + <code>miaoremind-debug.apk</code></li>
+</ul>
+</div>
+
+</body>
+</html>
