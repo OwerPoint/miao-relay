@@ -62,18 +62,20 @@ jobs:
           path: windows/dist/喵提醒中转.exe
 
   # ========== Android APK ==========
+# ========== Android APK ==========
   build-apk:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - name: 缓存
-        uses: actions/cache@v4
-        with:
-          path: ~/.buildozer
-          key: ${{ runner.os }}-bz-${{ hashFiles('apk/buildozer.spec') }}
+      # 1. 清理旧的构建缓存（防止上次失败的垃圾文件干扰）
+      - name: Clean old build cache
+        run: |
+          rm -rf ~/.buildozer
+          rm -rf apk/.buildozer
+          echo "Cleaned old cache."
 
-      - name: 安装全部系统依赖
+      - name: 安装系统依赖（全量版）
         run: |
           sudo apt update
           sudo apt install -y \
@@ -92,37 +94,41 @@ jobs:
           echo "JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64" >> $GITHUB_ENV
           echo "PATH=$PATH:/usr/lib/jvm/java-17-openjdk-amd64/bin" >> $GITHUB_ENV
 
-      - name: 安装 Buildozer + Cython
+      - name: 安装 Python 工具链
         run: |
           python3 -m pip install --upgrade pip
           pip3 install cython==0.29.36 buildozer
 
-      - name: 验证文件
+      - name: 验证文件结构
         run: |
+          echo "=== apk ==="
           ls -la apk/
           test -f apk/main.py || (echo "❌ main.py 缺失" && exit 1)
           test -f apk/buildozer.spec || (echo "❌ spec 缺失" && exit 1)
 
-      - name: 编译 APK
+      - name: 编译 APK（终极防呆版）
         run: |
           cd apk
-          buildozer -v android debug 2>&1 | tee build.log
+          # 关键：强制接受所有许可协议，防止卡住
+          export ANDROID_SDK_ROOT=$HOME/.buildozer/android/platform/android-sdk
+          export ANDROID_NDK_HOME=$HOME/.buildozer/android/platform/android-ndk
+          yes | buildozer -v android debug
         env:
           JAVA_HOME: /usr/lib/jvm/java-17-openjdk-amd64
+          # 防止 Buildozer 在 root 环境下报错
+          BUILDOZER_WARN_ON_ROOT: 0
 
-      - name: 打印完整日志（失败时）
-        if: failure()
+      - name: 验证 APK 产物
         run: |
-          echo "=== BUILD LOG ==="
-          cat apk/build.log || true
-          echo "=== BIN ==="
-          ls -la apk/bin/ || true
+          echo "=== APK bin ==="
+          ls -lh apk/bin/ || echo "bin missing"
 
       - name: 上传 APK
         uses: actions/upload-artifact@v4
         with:
           name: android-apk
-          path: apk/bin/*.apk  # ========== 发布 Release ==========
+          path: apk/bin/*.apk
+          # ========== 发布 Release ==========
   release:
     needs: [build-windows, build-apk]
     runs-on: ubuntu-latest
